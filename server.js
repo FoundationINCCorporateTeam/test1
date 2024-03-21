@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { exec } = require('child_process');
 const querystring = require('querystring');
+const axios = require('axios');
 
 const app = express();
 const port = 3000;
@@ -32,22 +32,22 @@ app.get('/', (req, res) => {
 });
 
 // Handle form submission
-app.post('/proxy', (req, res) => {
+app.post('/proxy', async (req, res) => {
     const { url } = req.body;
 
-    // Encode the URL
-    const encodedUrl = querystring.escape(url);
+    try {
+        // Encode the URL
+        const encodedUrl = querystring.escape(url);
 
-    // Open the URL using the default system browser
-    exec(`open "${encodedUrl}"`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error opening URL: ${error.message}`);
-            res.status(500).send('Error opening URL');
-        } else {
-            console.log(`Opened URL: ${url}`);
-            res.redirect(url); // Redirect back to the submitted URL
-        }
-    });
+        // Fetch the content of the specified URL
+        const response = await axios.get(encodedUrl);
+
+        // Send the fetched content as the response
+        res.send(response.data);
+    } catch (error) {
+        console.error(`Error fetching URL: ${error.message}`);
+        res.status(500).send('Error fetching URL');
+    }
 });
 
 // Start the server
