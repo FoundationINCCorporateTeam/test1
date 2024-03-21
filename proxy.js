@@ -1,24 +1,56 @@
-: const express = require('express');
-const httpProxy = require('http-proxy');
+const express = require('express');
+const bodyParser = require('body-parser');
+const { exec } = require('child_process');
+const querystring = require('querystring');
 
-// Create a proxy and listen on port 3000
-const proxy = httpProxy.createProxyServer({});
 const app = express();
-app.get('*', function(req, res) {
-  // Prints "Request GET https://httpbin.org/get?answer=42"
-  console.log('Request', req.method, req.url);
-  proxy.web(req, res, { target: `${req.protocol}://${req.hostname}` });
-});
-const server = await app.listen(3000);
+const port = 3000;
 
-const axios = require('axios');
-const res = await axios.get('http://httpbin.org/get?answer=42', {
-  // `proxy` means the request actually goes to the server listening
-  // on localhost:3000, but the request says it is meant for
-  // 'http://httpbin.org/get?answer=42'
-  proxy: {
-    host: 'localhost',
-    port: 3000
-  }
+// Middleware to parse form data
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve the HTML form
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Website Proxy Form</title>
+        </head>
+        <body>
+            <h1>Website Proxy</h1>
+            <form action="/proxy" method="post">
+                <label for="url">Enter URL:</label>
+                <input type="url" id="url" name="url" required>
+                <button type="submit">Submit</button>
+            </form>
+        </body>
+        </html>
+    `);
 });
-console.log(res.data);
+
+// Handle form submission
+app.post('/proxy', (req, res) => {
+    const { url } = req.body;
+
+    // Encode the URL
+    const encodedUrl = querystring.escape(url);
+
+    // Open the URL using the default system browser
+    exec(`open "${encodedUrl}"`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error opening URL: ${error.message}`);
+            res.status(500).send('Error opening URL');
+        } else {
+            console.log(`Opened URL: ${url}`);
+            res.send(`Opened URL: ${url}`);
+        }
+    });
+});
+
+// Start the server
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
