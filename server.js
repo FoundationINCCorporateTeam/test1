@@ -45,7 +45,7 @@ app.post('/proxy', (req, res) => {
             res.status(500).send('Error opening URL');
         } else {
             console.log(`Opened URL: ${url}`);
-            res.send(`Opened URL: ${url}`);
+            res.redirect(url); // Redirect back to the submitted URL
         }
     });
 });
